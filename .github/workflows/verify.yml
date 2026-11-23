@@ -1,0 +1,56 @@
+name: Lean 4 & Exact Python Verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify-python:
+    name: Exact Rational & Integer Certificates (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run exact evaluator, upper-bound certificate, iid bound, and financial illustration
+        working-directory: code
+        run: |
+          python evaluator.py
+          python ub_certificate.py
+          python iid_lower_bound.py
+          python financial_illustration.py
+
+  verify-lean:
+    name: Lean 4 Proof Build & Axiom Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install elan and Lean 4
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Fetch Mathlib cache
+        working-directory: lean
+        run: lake exe cache get
+      - name: Build Lean 4 proofs
+        working-directory: lean
+        run: lake build
+      - name: Verify axioms and theorem statements
+        working-directory: lean
+        run: |
+          OUT=$(lake env lean Audit.lean)
+          echo "$OUT"
+          echo "$OUT" | grep -q "SimpleAuctions.lower_bound"
+          echo "$OUT" | grep -q "SimpleAuctions.upper_bound"
+          echo "$OUT" | grep -q "SimpleAuctions.cStar_mem"
+          echo "$OUT" | grep -q "SimpleAuctions.iid_lower_bound"
+          if echo "$OUT" | grep -E "sorryAx|Lean\.ofReduceBool"; then
+            echo "ERROR: Forbidden axiom detected!"
+            exit 1
+          fi
+      - name: Scan for sorry / admit / native_decide / custom axioms
+        working-directory: lean
+        run: |
+          ! grep -rnE "\b(sorry|admit|axiom)\b|native_decide|implemented_by|\bunsafe\b" SimpleAuctions.lean Audit.lean SimpleAuctions/ | grep -vE "(no|\*no\*) \`native_decide\`"

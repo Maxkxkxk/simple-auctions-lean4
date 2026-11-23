@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use or build upon these proofs, certificates, or constructions, please cite this work as below."
+type: software
+title: "Machine-Verified Two-Sided Bounds for Simple Multi-Item Auctions: 2.1946 <= c* <= 2.486 and an i.i.d. Lower Bound above 1.316"
+authors:
+  - family-names: "Sievert"
+    given-names: "Max"
+    email: "sievert-max@gmx.de"
+repository-code: "https://github.com/Maxkxkxk/simple-auctions-lean4"
+url: "https://github.com/Maxkxkxk/simple-auctions-lean4"
+date-released: 2026-11-23
+version: "1.0.0"
+license: MIT
+keywords:
+  - mechanism design
+  - multi-item auctions
+  - algorithmic game theory
+  - Lean 4
+  - formal verification
+  - simple auctions
+  - separate selling
+  - grand bundling
+abstract: >-
+  Complete Lean 4 formal proofs (zero sorry, zero native_decide, standard axioms only)
+  and exact rational Python certificates establishing: (1) a general lower bound
+  REV(D) > 2.1946 * max(SREV(D), BREV(D)); (2) a universal upper bound
+  REV(D) <= 1.1187 * SREV(D) + 1.367299 * BREV(D) <= 2.486 * max(SREV(D), BREV(D))
+  for all finite independent product distributions; (3) the combined bracket
+  2.1946 <= c* <= 2.486; and (4) a 40-item i.i.d. lower bound
+  REV(F^{otimes 40}) > 1.316 * max(SREV, BREV) (with exact rational verification
+  >= 1.324907 for 100 i.i.d. items).

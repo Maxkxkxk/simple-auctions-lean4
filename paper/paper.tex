@@ -1,0 +1,231 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{microtype}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}{Remark}
+
+\newcommand{\REV}{\mathrm{REV}}
+\newcommand{\SREV}{\mathrm{SREV}}
+\newcommand{\BREV}{\mathrm{BREV}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+
+\title{Machine-Verified Two-Sided Bounds for Simple Multi-Item Auctions:\\
+$2.1946 \le c^* \le 2.486$ and an i.i.d.\ Lower Bound above $1.316$}
+
+\author{Max Sievert\\
+\small Independent Research \quad\texttt{sievert-max@gmx.de}\\
+\small Code \& Lean~4 Proofs: \url{https://github.com/Maxkxkxk/simple-auctions-lean4}}
+
+\date{November 23, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We study revenue maximization for a single additive buyer with $m$ independently valued items whose marginal distributions have finite support on $\R_{\ge 0}$. Let $\REV(D)$ denote the supremum expected revenue over all incentive-compatible and individually rational (possibly randomized) mechanisms, $\SREV(D)$ the optimal separate-selling revenue, $\BREV(D)$ the optimal grand-bundle revenue, and $c^* := \inf\{c : \forall m, D,\; \REV(D) \le c \max\{\SREV(D), \BREV(D)\}\}$.
+
+We prove and completely machine-verify in Lean~4 (zero \texttt{sorry}, zero \texttt{native\_decide}, standard axioms only) three theorems tightening both sides of the recently narrowed $[2.19, 2.50]$ bracket of Giannakopoulos and Hahn (\texttt{arXiv:2609.35711v3}):
+\begin{enumerate}
+  \item \textbf{General lower bound} (\texttt{SimpleAuctions.lower\_bound}): there exists a finite independent product distribution $D$ with $\REV(D) > 2.1946 \max\{\SREV(D), \BREV(D)\}$, witnessed by a deterministic two-part tariff plus a concentrated bundle (improving the published $2.19027$).
+  \item \textbf{Universal upper bound} (\texttt{SimpleAuctions.upper\_bound\_two}, \texttt{SimpleAuctions.upper\_bound}): for every finite independent product distribution $D$, $\REV(D) \le 1.1187\,\SREV(D) + 1.367299\,\BREV(D) \le 2.486 \max\{\SREV(D), \BREV(D)\}$ (improving the published $2.50$). Combined with Theorem~1, $2.1946 \le c^* \le 2.486$ (\texttt{SimpleAuctions.cStar\_mem}).
+  \item \textbf{i.i.d.\ lower bound} (\texttt{SimpleAuctions.iid\_lower\_bound}): for $40$ i.i.d.\ items with a truncated equal-revenue distribution and a deterministic entry-fee mechanism, $\REV(F^{\otimes 40}) > 1.316 \max\{\SREV, \BREV\}$ (and an exact rational verification gives $\ge 1.324907$ for $100$ i.i.d.\ items), substantially improving the $1.1877$ lower bound of Ma and Simchi-Levi cited as the best known in \texttt{arXiv:2609.35711v3}.
+\end{enumerate}
+All Lean~4 proof modules compile cleanly under Lean~v4.36.0 and pass full \texttt{leanchecker} kernel replay. We also map the numerical limits of the underlying relaxation family and include a brief stylised illustration for multi-tranche financial auctions.
+\end{abstract}
+
+\section{Introduction and Main Results}
+
+While Myerson~\cite{myerson1981} characterized revenue-optimal single-item auctions in closed form, optimal multidimensional mechanisms for an additive buyer with $m \ge 2$ independently valued items can require complex randomized lotteries and unbounded menu complexity~\cite{hartnisan2017,daskalakis2017}. A landmark result of Babaioff, Immorlica, Lucier, and Weinberg~\cite{bilw2020} established that the better of two elementary deterministic formats---selling items separately ($\SREV$) and selling the grand bundle ($\BREV$)---achieves a constant-factor approximation to $\REV$, initially with factor $6$, later improved to $5.2$ by Ma and Simchi-Levi~\cite{masimchilevi2021}.
+
+In autumn 2026, this constant underwent rapid tightening: Cai et al.~\cite{cai2026} proved $3.52$, Huang~\cite{huang2026} proved $\REV \le \SREV + \frac{\pi^2}{6}\BREV \le 2.645 \max\{\SREV,\BREV\}$ alongside a lower bound above $2.11$, and Giannakopoulos and Hahn~\cite{gh2026} proved $\REV \le \frac{7}{6}\SREV + \frac{4}{3}\BREV \le 2.50 \max\{\SREV,\BREV\}$ together with a published lower bound of $2 + 0.88/4.625 \approx 2.19027$ (improving Rubinstein's classical bound of $2$~\cite{rubinstein2016}). For identically distributed (i.i.d.) items, Giannakopoulos and Hahn~\cite{gh2026} prove an upper bound of $2.15$ and cite $1.1877$ (Ma and Simchi-Levi~\cite{masimchilevi2021}, two items) as the best known lower bound.
+
+\paragraph{Setting.}
+Let $D = (D_1, \dots, D_m)$ be a tuple of independent, finitely supported probability distributions on $\R_{\ge 0}$ (\texttt{FinDist} in \texttt{SimpleAuctions/Basic.lean}). Define:
+\begin{align*}
+  \SREV(D) &:= \sum_{i=1}^m \sup_{p \ge 0} p \Pr_{X_i \sim D_i}[X_i \ge p], &
+  \BREV(D) &:= \sup_{p \ge 0} p \Pr_{X \sim D}\!\left[\sum_{i=1}^m X_i \ge p\right],
+\end{align*}
+and $\REV(D) := \sup_{M} \E_{X \sim D}[\mathrm{pay}_M(X)]$, where $M = (\mathrm{alloc}_M, \mathrm{pay}_M)$ ranges over all direct mechanisms with $\mathrm{alloc}_M : \R^m \to [0,1]^m$ and $\mathrm{pay}_M : \R^m \to \R$ satisfying incentive compatibility (IC) and individual rationality (IR) for \emph{all} nonnegative valuation vectors $v, v' \in \R_{\ge 0}^m$. Let $c^* := \inf\{c \in \R : \forall m \in \mathbb{N},\; \forall D : \mathrm{Fin}\,m \to \mathrm{FinDist},\; \REV(D) \le c \max\{\SREV(D),\BREV(D)\}\}$.
+
+\begin{theorem}[General Lower Bound; Lean: \texttt{SimpleAuctions.lower\_bound}]\label{thm:lb}
+There exist $m \in \mathbb{N}$ and independent finitely supported distributions $D_1, \dots, D_m$ on $\R_{\ge 0}$ such that
+\[
+  \REV(D) > 2.1946 \max\{\SREV(D), \BREV(D)\}.
+\]
+The witnessing mechanism is deterministic.
+\end{theorem}
+
+\begin{theorem}[Universal Upper Bound; Lean: \texttt{SimpleAuctions.upper\_bound\_two}, \texttt{upper\_bound}]\label{thm:ub}
+For every finite index set $\iota$ and every family of independent finitely supported distributions $D : \iota \to \mathrm{FinDist}$,
+\[
+  \REV(D) \le 1.1187\,\SREV(D) + 1.367299\,\BREV(D).
+\]
+In particular, for every $m \in \mathbb{N}$ and every $D : \mathrm{Fin}\,m \to \mathrm{FinDist}$,
+\[
+  \REV(D) \le 2.486 \max\{\SREV(D), \BREV(D)\}.
+\]
+\end{theorem}
+
+\begin{corollary}[Two-Sided Bracket; Lean: \texttt{SimpleAuctions.main\_bracket}, \texttt{cStar\_mem}]\label{cor:bracket}
+$2.1946 \le c^* \le 2.486$.
+\end{corollary}
+
+\begin{theorem}[i.i.d.\ Lower Bound; Lean: \texttt{SimpleAuctions.iid\_lower\_bound}]\label{thm:iid}
+There exist $m \in \mathbb{N}$ and a finitely supported distribution $F$ on $\R_{\ge 0}$ (specifically $m = 40$) such that
+\[
+  \REV(F^{\otimes m}) > 1.316 \max\{\SREV(F^{\otimes m}), \BREV(F^{\otimes m})\}.
+\]
+The witnessing mechanism is a deterministic two-part tariff (entry fee $9$, item price $4$).
+\end{theorem}
+
+\begin{proposition}[100-item i.i.d.\ Exact Rational Bound; \texttt{code/iid\_lower\_bound.py}]\label{prop:iid100}
+For $n = 100$ i.i.d.\ items with $\Pr[X \ge k] = \frac{3}{25 \max(k,4)}$ for $1 \le k \le 13$ and $0$ for $k > 13$, the deterministic mechanism with entry fee $9$ and item price $4$ satisfies $\REV / \max\{\SREV, \BREV\} \ge 1.324907$ (verified in exact rational arithmetic via Python \texttt{fractions.Fraction}).
+\end{proposition}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+Quantity & Prior Published SOTA & This Work & Verification \\
+\midrule
+General lower bound & $2.19027$ (\cite{gh2026}, Thm~D.1) & $> 2.1946$ ($2.1946499\ldots$) & Lean~4 + exact Python \\
+General upper bound & $2.500$ (\cite{gh2026}, Prop~4.6) & $\le 2.486$ ($2.485776\ldots$) & Lean~4 + exact Python \\
+Two-param.\ upper bound & $\frac{7}{6}\SREV + \frac{4}{3}\BREV$ (\cite{gh2026}) & $1.1187\,\SREV + 1.367299\,\BREV$ & Lean~4 + exact Python \\
+i.i.d.\ lower bound & $1.1877$ (\cite{masimchilevi2021}, cited in \cite{gh2026}) & $> 1.316$ ($n=40$); $\ge 1.3249$ ($n=100$) & Lean~4 ($n=40$) + exact Python \\
+\bottomrule
+\end{tabular}
+\caption{Summary of verified bounds compared to published benchmarks as of November 2026.}
+\label{tab:summary}
+\end{table}
+
+\paragraph{Attribution and Scope.}
+The overall analytical architecture builds directly on prior breakthroughs: the master inequality, cap decomposition, Jensen weighting, Laplace bundle argument, and two-part-tariff lower-bound framework are due to Giannakopoulos and Hahn~\cite{gh2026}; core--tail duality originates with Cai, Devanur, and Weinberg~\cite{cdw2016}; the seed-completion viewpoint is due to Huang~\cite{huang2026}; and the concentrated-bundle trick goes back to Rubinstein~\cite{rubinstein2016}. Giannakopoulos and Hahn note in~\cite{gh2026} that slightly sharper constants than $2.19$ and $2.50$ were found in unpublished AI-assisted exploration. Our contributions are: (i)~the equal-revenue-on-$[p_i, p_i+e]$ structural parameterization and improved general lower bound $2.1946$; (ii)~the 4-exponential kernel, step-function Jensen weights, and improved universal upper bound $2.486$; (iii)~the substantial i.i.d.\ lower-bound jump from $1.1877$ to $> 1.316$ (Lean~4) / $1.3249$ (exact rational); and (iv)~a complete, self-contained Lean~4 formalization of all three results with zero \texttt{sorry} and zero \texttt{native\_decide}.
+
+All formal theorems apply to finitely supported distributions; extending Theorem~\ref{thm:ub} to arbitrary nonnegative random variables follows by standard discretization/truncation (not formalized here).
+
+\paragraph{Methodology Disclosure.}
+The computational search, certificate design, and Lean~4 proof engineering were produced via a human-directed, multi-run autonomous AI-agent workflow strictly gated by exact rational verification and the Lean~4 kernel. Every mathematical claim in Theorems~\ref{thm:lb}--\ref{thm:iid} rests solely on the Lean~4 kernel (\texttt{v4.36.0}) and its three standard axioms (\texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}), with full \texttt{leanchecker} replay.
+
+\section{Proof Overview of Theorem~\ref{thm:lb} (General Lower Bound)}
+
+Fix lattice unit $N = 400$ and entry fee $e = 580$. The instance is the disjoint union $D = D_A \times D_B$ of two independent item groups:
+\begin{itemize}
+  \item \textbf{Group $A$ ($1280$ items):} Five item types $i \in \{0,\dots,4\}$, each with $256$ i.i.d.\ copies. With posted prices $P = (8, 21, 65, 132, 1280)$ and integer parameters $R = (1067039, 1128540, 2129082, 2782033, 19107703)$, an item of type $i$ has tail $\Pr[X \ge k] = \lfloor R_i / \max(k, P_i) \rfloor / 2^{24}$ for $1 \le k \le P_i + e$ and $0$ for $k > P_i + e$. Thus every type is (up to rounding) equal-revenue on $[P_i, P_i + e]$.
+  \item \textbf{Group $B$ ($L^2$ items):} $L^2$ i.i.d.\ items supported on $\{j\delta : 1 \le j \le L\}$ with $\Pr[Y \ge j\delta] = 1/j$ and $\delta = N / (L^2 H_L)$, where $H_L = \sum_{j=1}^L 1/j$.
+\end{itemize}
+
+\paragraph{Mechanism.}
+Sell Group~$B$ as a single bundle at price $N(1 - 10^{-6})$, and independently offer Group~$A$ via a two-part tariff with entry fee $e = 580$ and item prices $P_i$. In \texttt{Main.lean} (\texttt{menuMech}), IC and IR are proved globally over all $v, v' \in \R_{\ge 0}^m$.
+
+\paragraph{Verification steps.}
+\begin{enumerate}
+  \item \emph{Separate revenue:} $k \Pr[X_i \ge k] \le R_i / 2^{24}$ for all $k$ and $256 \sum_i R_i = 256 \cdot 26{,}214{,}397 < 400 \cdot 2^{24}$, giving $\SREV(D_A) \le N$ and $\SREV(D_B) \le N/H_L$.
+  \item \emph{Grand-bundle revenue:} We prove $(N+t)\Pr[Z_A \ge t] \le N$ for all $t \in \mathbb{N}$: for $1 \le t \le 2000$ by Kronecker-packed generating polynomials (base $X = 2^{30744}$) checked directly via \texttt{decide +kernel} (\texttt{KernelRun.lean}); for $t > 2000$ by the tail expectation bound $(N+t)\Pr[Z_A \ge t] \le \E[(N+Z_A)\mathbf{1}_{Z_A \ge 2000}] \le N$ (\texttt{GroupAData.lean}). Conditioning on $Z_B = y$ yields $p\Pr[Z_A + y \ge p] \le \max(N, y)$ for all $p \ge 0$ (\texttt{RealA.lean}), whence $\BREV(D) \le \E[\max(N, Z_B)] \le N + \tau + \mathrm{Var}(Z_B)/(4\tau)$.
+  \item \emph{Mechanism revenue and limit:} A second Kronecker-packed generating-function computation truncated at $e = 580$ certifies $\E[\text{pay}_A] \ge 1.19464\,N$. Chebyshev's inequality with $\mathrm{Var}(Z_B) \le 2N^2/L$ (\texttt{GroupB.lean}) yields revenue $\ge (1 - o(1))N$ from $B$. Taking $L$ sufficiently large (\texttt{exists\_L}) gives a finite instance strictly exceeding $2.1946 \max\{\SREV, \BREV\}$.
+\end{enumerate}
+
+\section{Proof Overview of Theorem~\ref{thm:ub} (Universal Upper Bound)}
+
+The formal proof spans 13 Lean~4 modules (\texttt{Expect}, \texttt{Duality}, \texttt{LayerCake}, \texttt{Laplace}, \texttt{Abstract}, \texttt{AnalyticCert}, \texttt{CertKernel}, \texttt{CertData}, \texttt{CertRun}, \texttt{CertSound}, \texttt{CertLoop}, \texttt{UpperBound}, \texttt{Bracket}):
+
+\begin{enumerate}
+  \item \textbf{Elementary finite-support master inequality (\texttt{Duality.lean}).} For any caps $c_j \ge 0$ satisfying $\E[\min(X_j, c_j)] \le r_j := \REV(X_j)$ and excess $Y_j := (X_j - c_j)^+$, routing the buyer's utility to $j^*(\omega) \in \arg\max_j Y_j(\omega)$ and applying a one-dimensional threshold induction (\texttt{line\_bound}) on each coordinate yields
+  \[
+    \mathrm{Rev}(M, D) \le \SREV(D) + \E\!\left[\sum_j Y_j - \max_j Y_j\right].
+  \]
+  \item \textbf{Layer cake, Jensen, and step-function weights (\texttt{LayerCake.lean}, \texttt{Abstract.lean}).} Expressing $\E[\sum_j Y_j - \max_j Y_j] = \int_0^\infty (\sum_j x_j(t) - 1 + \prod_j (1 - x_j(t)))\,dt$ with $x_j(t) = \Pr[X_j \ge c_j + t]$ and applying Jensen's inequality with weights $r_j / (\ell \alpha(c_j/\ell))$ reduces the excess to single-item integrals involving $\psi(z) := 1 - (1 - e^{-z})/z$. Using a monotone \emph{step function} $\alpha$ guarantees existence of the normalizing scale $\ell$ with $\sum_j r_j/\alpha(c_j/\ell) = \ell$ via an elementary monotone fixed-point argument without continuity assumptions.
+  \item \textbf{Laplace bundle bound (\texttt{Laplace.lean}).} For a $4$-exponential kernel $w(v) = \sum_{i=1}^4 a_i e^{-v/s_i}$ with $a = (0.266, 0.509, 0.203, 0.022)$ and $s = (0.5, 1.4, 22, 209.3)$, independence and $\Pr[\sum_j X_j \ge u] \le \min(1, \BREV/u)$ imply $\E[e^{-\sum_j X_j/\sigma}] \ge \int_1^\infty e^{-yx} x^{-2}\,dx$ ($y = \BREV/\sigma$), bounded by certified linear tangents to obtain $\sum_j \E[1 - e^{-X_j/\sigma}] \le \kappa_i + b_i \BREV/\sigma$.
+  \item \textbf{Kernel-verified 1D analytic certificate (\texttt{AnalyticCert.lean}--\texttt{CertLoop.lean}).} The remaining one-variable inequality
+  \[
+    \frac{\kappa}{\alpha(t)} + \int_t^\infty \left(\psi\!\left(\frac{\alpha(t)}{v}\right) - w(v)\right)^+ \frac{dv}{v} - \frac{1}{t}\int_0^t w(u)\,du \le g
+  \]
+  is certified for all $t > 0$ via directed integer arithmetic over $1846$ grid cells and $35$ steps of $\alpha$, checked inside the Lean~4 kernel (\texttt{CertRun.lean}, $\approx 35\text{s}$), yielding $g \le 0.1187$ and $b = 1.367299$ (exact Python certificate: $g = 0.118477\ldots$, sum $2.485776\ldots$), hence $\REV(D) \le 1.1187\,\SREV(D) + 1.367299\,\BREV(D) \le 2.486 \max\{\SREV(D), \BREV(D)\}$.
+\end{enumerate}
+
+\section{Proof Overview of Theorem~\ref{thm:iid} (i.i.d.\ Lower Bound)}
+
+Take $m = 40$ i.i.d.\ items supported on $\{0, 4, 5, \dots, 13\}$ with integer probability weights $c_N / W$ ($W = 3{,}603{,}600$) satisfying $\Pr[X \ge k] = \frac{3}{10\max(k, 4)}$ for $1 \le k \le 13$ (exact equal-revenue on $[4,13]$).
+\begin{itemize}
+  \item \textbf{SREV:} For every $p \ge 0$, $p \Pr[X \ge p] \le 3/10$, hence $\SREV(F^{\otimes 40}) \le 40 \cdot \frac{3}{10} = 12$.
+  \item \textbf{BREV:} Packing $g_z(X) = \sum_{k=0}^{13} c_N(k) X^k$ at base $X = 2^{900}$, repeated squaring $F_z = g_z^{40}$ and a shifting loop over all $t \in \{0,\dots,520\}$ (\texttt{IIDKernel.lean}, $\approx 1.2\text{s}$ in \texttt{decide +kernel}) prove $t\Pr[\sum_i X_i \ge t] \le 12.151$ for all $t \in \mathbb{N}$, hence $\BREV(F^{\otimes 40}) \le 12.151$.
+  \item \textbf{Mechanism revenue:} Offering an entry fee of $9$ followed by posted price $4$ per item is IC and IR (\texttt{menuMech} with empty Group~$B$). A modular generating-function calculation modulo $X^9$ certifies expected revenue $\ge 16$, yielding $\REV / \max\{\SREV, \BREV\} \ge 16 / 12.151 > 1.3167 > 1.316$.
+\end{itemize}
+Scaling the same construction to $n = 100$ i.i.d.\ items gives exact rational ratio $\ge 1.324907$ (\texttt{code/iid\_lower\_bound.py}), approaching $\approx 1.33$ numerically in the Poisson limit.
+
+\section{Numerical Limits and Stylised Financial Illustration}
+
+\paragraph{Numerical limits of the proof family (non-rigorous floats).}
+Exploratory experiments (\texttt{EXPERIMENTS.md}, \texttt{DEAD\_ENDS.md}) indicate:
+(i)~the equal-revenue two-part-tariff lower-bound family approaches $\approx 2.1957$;
+(ii)~the Giannakopoulos--Hahn master inequality itself admits an adversarial lower estimate of $\approx 2.325$, so it cannot yield a bound below $\approx 2.33$--$2.35$;
+(iii)~within the one-parameter Laplace/Lagrangian scheme, optimizing arbitrarily many exponentials plateaus around $2.482$--$2.484$; a two-normalisation 2D variant reaches $\approx 2.461$, while a fully profile-adapted kernel plateaus near $\approx 2.43$. Breaking below $2.43$ therefore requires a genuinely stronger treatment of the bundle constraint.
+
+\paragraph{Stylised illustration for multi-tranche financial auctions.}
+Consider a stylised primary-dealer setting with a single strategic bidder having additive, independent private surplus over multiple tranches of a debt or liquidity issuance (\texttt{code/financial\_illustration.py}; stylised parameters, not empirical market data). Theorem~\ref{thm:ub} guarantees that choosing the better of tranche-by-tranche pricing and all-or-nothing package pricing always captures at least $1/2.486 \approx 40.2\%$ of the optimal mechanism's revenue, while Theorem~\ref{thm:lb} shows this worst-case guarantee cannot exceed $1/2.1946 \approx 45.6\%$. For $40$ identical lots with the distribution of Theorem~\ref{thm:iid} (surplus in basis points), separate pricing yields $12.00$, grand bundling yields $12.1509$, and adding a participation fee of $9$ with price $4$ per lot yields $16.0014$ ($+31.7\%$ over the better simple format). In a $4$-tranche heterogeneous illustration ($2\text{y}, 5\text{y}, 10\text{y}, 30\text{y}$), separate pricing ($7.50$) already outperforms grand bundling ($4.50$) and all tested entry-fee menus, while Theorem~\ref{thm:ub} gives a tight revenue envelope of $14.5431$. Key caveats for real bond markets: actual Treasury and central-bank auctions involve multiple competing bidders, common-value components, and strong cross-maturity correlations.
+
+\section{Formal Verification and Reproducibility}
+
+The Lean~4 project (\texttt{lean/}, Lean~v4.36.0, Mathlib~v4.36.0) builds via \texttt{lake build} and audits all main theorems via \texttt{lake env lean Audit.lean}. Every theorem (\texttt{lower\_bound}, \texttt{upper\_bound}, \texttt{upper\_bound\_two}, \texttt{main\_bracket}, \texttt{cStar\_mem}, \texttt{iid\_lower\_bound}) depends exclusively on \texttt{[propext, Classical.choice, Quot.sound]} with zero \texttt{sorry}, zero \texttt{admit}, zero custom axioms, and zero \texttt{native\_decide}. All modules pass \texttt{lake env leanchecker} replay. Full code, data, and audit records are archived in the accompanying repository.
+
+\begin{thebibliography}{9}
+\bibitem{bilw2020}
+M.~Babaioff, N.~Immorlica, B.~Lucier, and S.~M.~Weinberg.
+A simple and approximately optimal mechanism for an additive buyer.
+\emph{Journal of the ACM}, 67(4):1--40, 2020.
+
+\bibitem{cdw2016}
+Y.~Cai, N.~R.~Devanur, and S.~M.~Weinberg.
+A duality based unified approach to Bayesian mechanism design.
+In \emph{STOC}, 2016.
+
+\bibitem{cai2026}
+Y.~Cai, V.~Gupta, Y.~Jiang, C.~Liaw, A.~Mehta, G.~Velegkas, and D.~Wang.
+Improved revenue guarantees for selling separately and bundling.
+\texttt{arXiv:2609.28873}, September 2026.
+
+\bibitem{daskalakis2017}
+C.~Daskalakis, A.~Deckelbaum, and C.~Tzamos.
+Strong duality for a multiple-good monopolist.
+\emph{Econometrica}, 85(3):735--767, 2017.
+
+\bibitem{gh2026}
+Y.~Giannakopoulos and J.~Hahn.
+On the power of determinism in multi-item auctions.
+\texttt{arXiv:2609.35711v3}, November 2026.
+
+\bibitem{hartnisan2017}
+S.~Hart and N.~Nisan.
+Approximate revenue maximization with multiple items.
+\emph{Journal of Economic Theory}, 172:313--347, 2017.
+
+\bibitem{huang2026}
+Y.~Huang.
+Improved approximation and tight competition for simple auctions.
+\texttt{arXiv:2610.24973v2}, November 2026.
+
+\bibitem{masimchilevi2021}
+W.~Ma and D.~Simchi-Levi.
+Tight approximation guarantees for independent additive buyers (and related bundling bounds).
+In \emph{AISTATS}, 2021.
+
+\bibitem{myerson1981}
+R.~B.~Myerson.
+Optimal auction design.
+\emph{Mathematics of Operations Research}, 6(1):58--73, 1981.
+
+\bibitem{rubinstein2016}
+A.~Rubinstein.
+On the computational complexity of optimal simple mechanisms.
+In \emph{ITCS}, 2016.
+\end{thebibliography}
+
+\end{document}

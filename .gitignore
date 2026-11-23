@@ -1,0 +1,17 @@
+# Lean 4 build & cache artifacts
+lean/.lake/
+lean/run.log
+lean/setup.log
+lean/wip/
+
+# Python caches & temporary scratch arrays
+**/__pycache__/
+*.pyc
+code/wip/log/
+code/wip/*.npy
+code/wip/*.npz
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+*.swp

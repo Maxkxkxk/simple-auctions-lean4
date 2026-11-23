@@ -1,0 +1,7 @@
+{"note": "STYLISED illustration, not calibrated to market data. Values: bidder surplus per tranche (basis points of face) above the reserve price, independent across tranches.",
+ "tranches": [
+  {"name": "2y",  "dist": [["0","1/2"],["2","1/4"],["4","1/4"]]},
+  {"name": "5y",  "dist": [["0","1/2"],["3","1/4"],["6","1/4"]]},
+  {"name": "10y", "dist": [["0","2/3"],["6","1/6"],["12","1/6"]]},
+  {"name": "30y", "dist": [["0","4/5"],["15","1/10"],["30","1/10"]]}],
+ "fees": ["0","1","2","3","4","5","6"]}

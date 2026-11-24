@@ -91,17 +91,18 @@ The witnessing mechanism is a deterministic two-part tariff (entry fee $9$, item
 For $n = 100$ i.i.d.\ items with $\Pr[X \ge k] = \frac{3}{25 \max(k,4)}$ for $1 \le k \le 13$ and $0$ for $k > 13$, the deterministic mechanism with entry fee $9$ and item price $4$ satisfies $\REV / \max\{\SREV, \BREV\} \ge 1.324907$ (verified in exact rational arithmetic via Python \texttt{fractions.Fraction}).
 \end{proposition}
 
-\begin{table}[h]
+\begin{table}[t]
 \centering
-\small
+\footnotesize
+\setlength{\tabcolsep}{4.5pt}
 \begin{tabular}{@{}llll@{}}
 \toprule
 Quantity & Prior Published SOTA & This Work & Verification \\
 \midrule
-General lower bound & $2.19027$ (\cite{gh2026}, Thm~D.1) & $> 2.1946$ ($2.1946499\ldots$) & Lean~4 + exact Python \\
-General upper bound & $2.500$ (\cite{gh2026}, Prop~4.6) & $\le 2.486$ ($2.485776\ldots$) & Lean~4 + exact Python \\
-Two-param.\ upper bound & $\frac{7}{6}\SREV + \frac{4}{3}\BREV$ (\cite{gh2026}) & $1.1187\,\SREV + 1.367299\,\BREV$ & Lean~4 + exact Python \\
-i.i.d.\ lower bound & $1.1877$ (\cite{masimchilevi2021}, cited in \cite{gh2026}) & $> 1.316$ ($n=40$); $\ge 1.3249$ ($n=100$) & Lean~4 ($n=40$) + exact Python \\
+General lower bound & $2.19027$ (\cite{gh2026}, Thm~D.1) & $> 2.1946$ ($2.1946499\ldots$) & Lean~4 + Python \\
+General upper bound & $2.500$ (\cite{gh2026}, Prop~4.6) & $\le 2.486$ ($2.485776\ldots$) & Lean~4 + Python \\
+Two-param.\ upper & $\frac{7}{6}\SREV + \frac{4}{3}\BREV$ (\cite{gh2026}) & $1.1187\,\SREV + 1.367299\,\BREV$ & Lean~4 + Python \\
+i.i.d.\ lower bound & $1.1877$ (\cite{masimchilevi2021}, cited in \cite{gh2026}) & $> 1.316$ ($n=40$); $\ge 1.3249$ ($n=100$) & Lean~4 ($n=40$), Python \\
 \bottomrule
 \end{tabular}
 \caption{Summary of verified bounds compared to published benchmarks as of November 2026.}
@@ -127,7 +128,7 @@ Fix lattice unit $N = 400$ and entry fee $e = 580$. The instance is the disjoint
 \paragraph{Mechanism.}
 Sell Group~$B$ as a single bundle at price $N(1 - 10^{-6})$, and independently offer Group~$A$ via a two-part tariff with entry fee $e = 580$ and item prices $P_i$. In \texttt{Main.lean} (\texttt{menuMech}), IC and IR are proved globally over all $v, v' \in \R_{\ge 0}^m$.
 
-\paragraph{Verification steps.}
+\noindent\textbf{Verification steps.}\nopagebreak[4]
 \begin{enumerate}
   \item \emph{Separate revenue:} $k \Pr[X_i \ge k] \le R_i / 2^{24}$ for all $k$ and $256 \sum_i R_i = 256 \cdot 26{,}214{,}397 < 400 \cdot 2^{24}$, giving $\SREV(D_A) \le N$ and $\SREV(D_B) \le N/H_L$.
   \item \emph{Grand-bundle revenue:} We prove $(N+t)\Pr[Z_A \ge t] \le N$ for all $t \in \mathbb{N}$: for $1 \le t \le 2000$ by Kronecker-packed generating polynomials (base $X = 2^{30744}$) checked directly via \texttt{decide +kernel} (\texttt{KernelRun.lean}); for $t > 2000$ by the tail expectation bound $(N+t)\Pr[Z_A \ge t] \le \E[(N+Z_A)\mathbf{1}_{Z_A \ge 2000}] \le N$ (\texttt{GroupAData.lean}). Conditioning on $Z_B = y$ yields $p\Pr[Z_A + y \ge p] \le \max(N, y)$ for all $p \ge 0$ (\texttt{RealA.lean}), whence $\BREV(D) \le \E[\max(N, Z_B)] \le N + \tau + \mathrm{Var}(Z_B)/(4\tau)$.
@@ -215,8 +216,8 @@ Improved approximation and tight competition for simple auctions.
 
 \bibitem{masimchilevi2021}
 W.~Ma and D.~Simchi-Levi.
-Tight approximation guarantees for independent additive buyers (and related bundling bounds).
-In \emph{AISTATS}, 2021.
+Reaping the benefits of bundling under high production costs.
+In \emph{AISTATS}, PMLR~130, 2021.
 
 \bibitem{myerson1981}
 R.~B.~Myerson.

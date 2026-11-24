@@ -22,7 +22,8 @@ $2.1946 \le c^* \le 2.486$ and an i.i.d.\ Lower Bound above $1.316$}
 
 \author{Max Sievert\\
 \small Independent Research \quad\texttt{sievert-max@gmx.de}\\
-\small Code \& Lean~4 Proofs: \url{https://github.com/Maxkxkxk/simple-auctions-lean4}}
+\small Code \& Lean~4 Proofs: \url{https://github.com/Maxkxkxk/simple-auctions-lean4}\\
+\small Permanent Archive (Zenodo DOI): \url{https://doi.org/10.5281/zenodo.24482558}}
 
 \date{November 23, 2026}
 
@@ -174,7 +175,7 @@ Consider a stylised primary-dealer setting with a single strategic bidder having
 
 \section{Formal Verification and Reproducibility}
 
-The Lean~4 project (\texttt{lean/}, Lean~v4.36.0, Mathlib~v4.36.0) builds via \texttt{lake build} and audits all main theorems via \texttt{lake env lean Audit.lean}. Every theorem (\texttt{lower\_bound}, \texttt{upper\_bound}, \texttt{upper\_bound\_two}, \texttt{main\_bracket}, \texttt{cStar\_mem}, \texttt{iid\_lower\_bound}) depends exclusively on \texttt{[propext, Classical.choice, Quot.sound]} with zero \texttt{sorry}, zero \texttt{admit}, zero custom axioms, and zero \texttt{native\_decide}. All modules pass \texttt{lake env leanchecker} replay. Full code, data, and audit records are archived in the accompanying repository.
+The Lean~4 project (\texttt{lean/}, Lean~v4.36.0, Mathlib~v4.36.0) builds via \texttt{lake build} and audits all main theorems via \texttt{lake env lean Audit.lean}. Every theorem (\texttt{lower\_bound}, \texttt{upper\_bound}, \texttt{upper\_bound\_two}, \texttt{main\_bracket}, \texttt{cStar\_mem}, \texttt{iid\_lower\_bound}) depends exclusively on \texttt{[propext, Classical.choice, Quot.sound]} with zero \texttt{sorry}, zero \texttt{admit}, zero custom axioms, and zero \texttt{native\_decide}. All modules pass \texttt{lake env leanchecker} replay. Full code, Lean~4 proofs, data, and audit records are publicly available at \url{https://github.com/Maxkxkxk/simple-auctions-lean4} and permanently archived under Zenodo DOI \url{https://doi.org/10.5281/zenodo.24482558}.
 
 \begin{thebibliography}{9}
 \bibitem{bilw2020}

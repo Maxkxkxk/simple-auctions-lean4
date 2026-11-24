@@ -2,6 +2,7 @@ name: Lean 4 & Exact Python Verification
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -21,6 +22,23 @@ jobs:
           python ub_certificate.py
           python iid_lower_bound.py
           python financial_illustration.py
+
+  build-paper:
+    name: Compile LaTeX Manuscript (paper.pdf)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile paper/paper.tex with pdflatex
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: paper.tex
+          working_directory: paper
+          args: -pdf -interaction=nonstopmode -halt-on-error
+      - name: Upload compiled paper.pdf
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-pdf
+          path: paper/paper.pdf
 
   verify-lean:
     name: Lean 4 Proof Build & Axiom Audit

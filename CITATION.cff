@@ -7,9 +7,10 @@ authors:
     given-names: "Max"
     email: "sievert-max@gmx.de"
 repository-code: "https://github.com/Maxkxkxk/simple-auctions-lean4"
-url: "https://github.com/Maxkxkxk/simple-auctions-lean4"
+url: "https://doi.org/10.5281/zenodo.24482558"
+doi: "10.5281/zenodo.24482558"
 date-released: 2026-11-23
-version: "1.0.0"
+version: "1.0.1"
 license: MIT
 keywords:
   - mechanism design

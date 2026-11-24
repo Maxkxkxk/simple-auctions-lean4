@@ -1,9 +1,11 @@
 # Machine-Verified Bounds for Simple Multi-Item Auctions (Lean 4)
 
 [![Lean 4 & Exact Python Verification](https://github.com/Maxkxkxk/simple-auctions-lean4/actions/workflows/verify.yml/badge.svg)](https://github.com/Maxkxkxk/simple-auctions-lean4/actions/workflows/verify.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24482558.svg)](https://doi.org/10.5281/zenodo.24482558)
 
 **Author:** Max Sievert (`sievert-max@gmx.de`)  
-**Date:** November 23, 2026
+**Date:** November 23, 2026  
+**Permanent Archive (Zenodo DOI):** https://doi.org/10.5281/zenodo.24482558
 
 Formal **Lean 4** (zero `sorry`, zero `native_decide`, standard axioms `[propext, Classical.choice, Quot.sound]` only) and exact rational Python proofs tightening both sides of the universal approximation ratio $c^*$ between optimal multi-item mechanisms ($\mathrm{REV}$) and the better of separate selling ($\mathrm{SREV}$) and grand bundling ($\mathrm{BREV}$) for a single additive buyer with independent finitely supported item valuations.
 
@@ -64,6 +66,9 @@ python baselines.py
   title        = {Machine-Verified Two-Sided Bounds for Simple Multi-Item Auctions: $2.1946 \le c^* \le 2.486$ and an i.i.d.\ Lower Bound above $1.316$},
   year         = {2026},
   month        = {November},
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.24482558},
+  url          = {https://doi.org/10.5281/zenodo.24482558},
   howpublished = {\url{https://github.com/Maxkxkxk/simple-auctions-lean4}}
 }
 ```

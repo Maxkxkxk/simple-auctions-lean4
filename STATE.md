@@ -25,9 +25,11 @@
 
 ## Current Phase & Active Track
 
-**All core tracks (Phases 0, 1, 2, and 3) are complete and verified:**
+**All core tracks (Phases 0, 1, 2, and 3) are complete, verified, and publicly archived:**
+- Public GitHub repository: https://github.com/Maxkxkxk/simple-auctions-lean4 (green GitHub Actions Lean 4 & Python CI).
+- Permanent CERN Zenodo DOI: https://doi.org/10.5281/zenodo.24482558 (`Max Sievert`, Release `v1.0.1`).
 - Track 1 (`lower_bound`), Track 2 (`upper_bound`, `upper_bound_two`, `main_bracket`, `cStar_mem`), and i.i.d. Track (`iid_lower_bound`) are all machine-verified in Lean 4.
-- Release & publication assets ready: `paper/paper.tex`, `paper/working_paper.md`, `README.md`, `.gitignore`, `.github/workflows/verify.yml`.
+- Release & publication assets ready: `paper/paper.tex`, `paper/paper.pdf`, `paper/working_paper.md`, `README.md`, `CITATION.cff`, `LICENSE`, `.gitignore`, `.github/workflows/verify.yml`.
 
 ## Verified Files & Re-Run Commands
 
